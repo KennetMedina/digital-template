@@ -111,7 +111,7 @@ window.onload = function() {
 
     function createAliens() {
 
-        for (var y = 0; y < 4; y++) {
+        for (var y = 0; y < 5; y++) {
             var alien = aliens.create(-(Math.random() * 800), game.world.randomY, 'enemy');
             alien.anchor.setTo(0.5, 0.5);
             //alien.animations.add('fly', [0, 1, 2, 3], 20, true);
@@ -126,7 +126,7 @@ window.onload = function() {
         game.add.tween(aliens).to({ x: game.width + (1600 + alien.x) }, 20000, Phaser.Easing.Linear.None, true);
 
         //  When the tween loops it calls descend
-        //tween.onLoop.add(descend, this);
+        tween.onLoop.add(createAliens, this);
     }
 
     function setupInvader(invader) {
@@ -280,9 +280,9 @@ window.onload = function() {
     function fireBullet() {
 
         //  To avoid them being allowed to fire too fast we set a time limit
-        if (game.time.now > bulletTime) {
+        if (game.time.now >= bulletTime) {
             //  Grab the first bullet we can from the pool
-            bullet = bullets.getFirstExists(false);
+            var bullet = bullets.getFirstExists(false);
 
             if (bullet) {
                 //  And fire it
