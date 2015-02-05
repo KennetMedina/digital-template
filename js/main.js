@@ -34,7 +34,7 @@ window.onload = function() {
     var explosions;
     var space;
     var score = 0;
-    var scoreString = '';
+    var scoreString = 'Score : ';
     var scoreText;
     var lives;
     var enemyBullets;
@@ -47,6 +47,8 @@ window.onload = function() {
 
         space = game.add.tileSprite(0, 0, 800, 600, 'space');
 
+        //game.setBounds(0, 0, 800, 600);
+
         //  Our bullet group
         bullets = game.add.group();
         bullets.enableBody = true;
@@ -54,7 +56,7 @@ window.onload = function() {
         bullets.createMultiple(30, 'laser');
         bullets.setAll('anchor.x', 0.5);
         bullets.setAll('anchor.y', 1);
-        bullets.setAll('outOfBoundsKill', true);
+        bullets.setAll('bulletOOB', true);
         bullets.setAll('checkWorldBounds', true);
 
         // The enemy's bullets
@@ -63,24 +65,27 @@ window.onload = function() {
         enemyBullets.physicsBodyType = Phaser.Physics.ARCADE;
         enemyBullets.createMultiple(30, 'enemyBullet');
         enemyBullets.setAll('anchor.x', 0.5);
-        enemyBullets.setAll('anchor.y', 1);
-        enemyBullets.setAll('outOfBoundsKill', true);
+        enemyBullets.setAll('anchor.y', 0.5);
+        enemyBullets.setAll('enemyBulletOOB', true);
         enemyBullets.setAll('checkWorldBounds', true);
 
         //  The hero!
         player = game.add.sprite(700, 300, 'ship');
         player.anchor.setTo(0.5, 0.5);
+        //player.angle = 180;
         game.physics.enable(player, Phaser.Physics.ARCADE);
 
         //  The baddies!
         aliens = game.add.group();
         aliens.enableBody = true;
         aliens.physicsBodyType = Phaser.Physics.ARCADE;
+        //aliens.setAll('alienOOB', true);
+        //aliens.setAll('checkWorldBounds', true);
 
         createAliens();
 
         //  The score
-        scoreString = 'Score : ';
+        //scoreString = 'Score : ';
         scoreText = game.add.text(10, 10, scoreString + score, { font: '34px Arial', fill: '#fff' });
 
         //  Lives
@@ -93,7 +98,7 @@ window.onload = function() {
         stateText.visible = false;
 
         for (var i = 0; i < 3; i++) {
-            var ship = lives.create(game.world.width - 100 + (30 * i), 60, 'ship');
+            var ship = lives.create(game.world.width - 100 + (30 * i), 80, 'ship');
             ship.anchor.setTo(0.5, 0.5);
             ship.angle = 90;
             ship.alpha = 0.4;
@@ -111,9 +116,12 @@ window.onload = function() {
 
     function createAliens() {
 
-        for (var y = 0; y < 5; y++) {
-            var alien = aliens.create(-(Math.random() * 800), game.world.randomY, 'enemy');
+        for (var y = 0; y < 10; y++) {
+            var alien = aliens.create((Math.random() * 100), game.world.randomY, 'enemy');
             alien.anchor.setTo(0.5, 0.5);
+            alien.events.onOutOfBounds.add(alienOOB, this);
+            alien.checkWorldBounds = true;
+            //alien.angle = 180;
             //alien.animations.add('fly', [0, 1, 2, 3], 20, true);
             //alien.play('fly');
             //alien.body.moves = false;
@@ -123,10 +131,10 @@ window.onload = function() {
         //aliens.y = 50;
 
         //  All this does is basically start the invaders moving. Notice we're moving the Group they belong to, rather than the invaders directly.
-        game.add.tween(aliens).to({ x: game.width + (1600 + alien.x) }, 20000, Phaser.Easing.Linear.None, true);
+        game.add.tween(aliens).to({ x: game.width + (1600 + alien.x) }, 40000, Phaser.Easing.Linear.None, true);
 
         //  When the tween loops it calls descend
-        tween.onLoop.add(createAliens, this);
+        //tween.onLoop.add(createAliens, this);
     }
 
     function setupInvader(invader) {
@@ -177,6 +185,7 @@ window.onload = function() {
             //  Run collision
             game.physics.arcade.overlap(bullets, aliens, collisionHandler, null, this);
             game.physics.arcade.overlap(enemyBullets, player, enemyHitsPlayer, null, this);
+            //checkOutOfBounds();
         }
 
     }
@@ -219,14 +228,15 @@ window.onload = function() {
 
     }
 
-    function enemyHitsPlayer(player, bullet) {
+    function enemyHitsPlayer(player, enemyBullet) {
 
-        bullet.kill();
+        enemyBullet.kill();
+        player.kill();
 
-        live = lives.getFirstAlive();
-
-        if (live) {
+        if (lives.countLiving() > 0) {
+            var live = lives.getFirstExists(false);
             live.kill();
+            player.revive();
         }
 
         //  And create an explosion :)
@@ -235,10 +245,9 @@ window.onload = function() {
         explosion.play('boom', 30, false, true);
 
         // When the player dies
-        if (lives.countLiving() < 1) {
-            player.kill();
-            enemyBullets.callAll('kill');
+        if (lives.countLiving() == 0) {
 
+            enemyBullets.callAll('kill', this);
             stateText.text = " GAME OVER \n Click to restart";
             stateText.visible = true;
 
@@ -269,7 +278,7 @@ window.onload = function() {
             // randomly select one of them
             var shooter = livingEnemies[random];
             // And fire the bullet from this enemy
-            enemyBullet.reset(shooter.body.x, shooter.body.y);
+            enemyBullet.reset(shooter.body.x + 20, shooter.body.y + 16);
 
             game.physics.arcade.moveToObject(enemyBullet, player, 120);
             firingTimer = game.time.now + 2000;
@@ -286,7 +295,7 @@ window.onload = function() {
 
             if (bullet) {
                 //  And fire it
-                bullet.reset(player.x - 8, player.y);
+                bullet.reset(player.x - 8, player.y + 6);
                 bullet.body.velocity.x = -400;
                 bulletTime = game.time.now + 200;
             }
@@ -294,27 +303,39 @@ window.onload = function() {
 
     }
 
-    function resetBullet(bullet) {
+    function enemyBulletOOB(enemyBullet) {
 
         //  Called if the bullet goes out of the screen
-        bullet.kill();
+        enemyBullet.kill();
+    }
 
+    function bulletOOB(bullet) {
+        bullet.kill();
+    }
+
+    function alienOOB(alien) {
+        alien.kill();
     }
 
     function restart() {
 
         //  A new level starts
+        score = 0;
+        bulletTime = 0;
+        firingTimer = 0;
 
         //resets the life count
         lives.callAll('revive');
         //  And brings the aliens back from the dead :)
         aliens.removeAll();
+        enemybullets.removeAll();
         createAliens();
 
         //revives the player
         player.revive();
         //hides the text
         stateText.visible = false;
+        //scoreText.text = scoreString + score;
 
     }
 };
